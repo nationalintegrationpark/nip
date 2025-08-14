@@ -1,0 +1,888 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Welcome to the National Integration Park</title>
+  <style>
+    /* --- Basic layout & typography --- */
+    :root{--green:#28a745;--green-dark:#218838;--red:#d32f2f;--red-dark:#b71c1c}
+    body{font-family:'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;margin:0;background:#f4f6f8;color:#222}
+
+    /* --- Login overlay --- */
+    .login-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.75);display:flex;align-items:center;justify-content:center;z-index:1000}
+    .login-box{background:#fff;padding:28px 36px;border-radius:12px;box-shadow:0 8px 25px rgba(0,0,0,0.25);width:360px;max-width:calc(100% - 40px)}
+    .login-box h2{margin:0 0 14px;font-size:20px}
+    .login-box input{width:100%;padding:10px;margin:8px 0;border:1px solid #ccc;border-radius:6px;font-size:15px}
+    .login-box input:focus{outline:none;border-color:var(--green)}
+    .login-box button{width:100%;padding:12px;margin-top:8px;background:linear-gradient(135deg,var(--green),var(--green-dark));color:#fff;border:none;border-radius:6px;cursor:pointer}
+
+    /* --- Banner/title --- */
+    .flag-banner{position:fixed;top:0;left:0;width:100%;height:100%;background:linear-gradient(to right,rgba(255,153,51,0.85),rgba(255,255,255,0.85),rgba(19,136,8,0.85));z-index:-1;transition:transform .35s ease-in-out,opacity .35s ease-in-out}
+    .flag-banner.hidden{transform:translateY(-100%);opacity:0}
+
+    .title{position:fixed;top:100px;width:100%;text-align:center;font-size:36px;font-weight:700;color:#222;text-shadow:1px 1px 4px rgba(0,0,0,0.15);transition:transform .35s ease-in-out,opacity .35s ease-in-out}
+    .title.hidden{transform:translateY(-130%);opacity:0}
+
+    /* --- Container & tabs --- */
+    .container{margin-top:340px;padding:20px;max-width:1100px;margin-left:auto;margin-right:auto}
+
+    .tab-buttons{display:flex;gap:8px;border-bottom:2px solid #ddd;margin-bottom:18px}
+    .tab-buttons > button{flex:1;background:#f5f5f5;border:none;padding:12px 18px;font-size:16px;cursor:pointer;border-radius:6px 6px 0 0;transition:opacity 0.3s ease;}
+    .tab-buttons > button:hover{background:#60a5fa;transform:translateY(-2px)}
+    .tab-buttons > button.active{background:#3b82f6;color:#fff;font-weight:600}
+
+    .tab-content{position: relative; z-index: 1; display:none;padding:20px;background-color: white;border-radius: 10px;box-shadow: 0 4px 12px rgba(0,0,0,0.08)}
+    .tab-content.active{display:block}
+
+    video{display:block;max-width:50%; height: 225px;border-radius:8px;box-shadow:0 4px 10px rgba(0,0,0,0.12);margin-bottom:14px}
+
+    /* --- Rays grid & collapsible styles --- */
+    .rays-grid{display:flex;flex-wrap:wrap;gap:20px}
+    .rays-section{flex:1 1 calc(33.333% - 20px);background:#fff;border-radius:10px;box-shadow:0 2px 10px rgba(0,0,0,0.08);overflow:hidden;display:flex;flex-direction:column}
+    .raysofhope img {
+        max-width: 100%;  /* Prevents overflow */
+        height: auto;     /* Keeps aspect ratio */
+        display: block;   /* Removes extra spacing */
+        margin: 0 auto;   /* Centers image */
+      }
+    
+        @media (max-width: 768px) {
+          .raysofhope img {
+          max-width: 90%;  /* Slightly smaller on tablets */
+      }
+    }
+
+        @media (max-width: 480px) {
+          .rays-of-hope img {
+           max-width: 80%;  /* Smaller for mobile */
+  }
+}
+
+    .collapsible{background:var(--red);color:#fff;border:none;padding:12px 14px;text-align:left;font-size:1.05rem;cursor:pointer;border-radius:10px 10px 0 0;display:flex;align-items:center;justify-content:space-between}
+    .collapsible:hover{background:var(--red-dark)}
+    .collapsible .caret{transition:transform .25s ease}
+    .collapsible[aria-expanded='true'] .caret{transform:rotate(90deg)}
+
+    .content{max-height:0;overflow:hidden;transition:max-height .35s ease,padding .2s ease;padding:0 12px}
+    .content.open{padding:12px}
+    .content h4{margin:8px 0 6px;font-size:0.95rem}
+    .content video{margin-bottom:12px}
+
+    /* --- Responsive --- */
+    @media (max-width:90%){.rays-section{flex:1 1 calc(50% - 20px)}}
+    @media (max-width:90%){.rays-section{flex:1 1 100%}.title{font-size:26px;top:80px}.flag-banner{height:200px}}
+
+    @media (prefers-reduced-motion: reduce){
+      *{transition:none!important;animation:none!important}
+    }
+  </style>
+</head>
+<body>
+  <!-- Login overlay -->
+  <div class="login-overlay" id="loginOverlay" aria-hidden="false">
+    <div class="login-box">
+      <h2>Please Login</h2>
+      <input id="username" type="text" placeholder="Username" aria-label="Username" />
+      <input id="password" type="password" placeholder="Password" aria-label="Password" />
+      <button id="loginBtn">Login</button>
+      <p id="loginError" style="color:red;display:none;margin-top:8px">Invalid credentials. Try again.</p>
+    </div>
+  </div>
+
+  <div class="flag-banner" aria-hidden="true"></div>
+  <div class="title" id="pageTitle">Welcome to the National Integration Park</div>
+
+  <div class="container" id="mainContent" style="display:none">
+    <div class="tab-buttons" role="tablist">
+      <button class="tab-link" data-target="home" role="tab">Home</button>
+      <button class="tab-link" data-target="about" role="tab">About</button>
+      <button class="tab-link" data-target="raysofhope" role="tab">Rays Of Hope</button>
+      <button class="tab-link" data-target="culturalcentre" role="tab">Cultural Centre</button>
+      <button class="tab-link" data-target="games" role="tab">Games</button>
+    </div>
+
+    <!-- Home Tab -->
+    <div id="home" class="tab-content active" role="tabpanel" aria-labelledby="Home">
+      <h2>Welcome to the National Integration Park</h2>
+      <p>National Integration Park is a monument built to strengthen the <strong>unity and integrity of India.</strong> Aseem Foundation has created the National Integration Park, bringing together different states of India on one platform.</p>
+
+      <button class="collapsible" aria-expanded="false">Kalash<span class="caret">▶</span></button>
+      <div class="content" aria-hidden="true">
+          <p>When the construction of the National Integration Park began, members of Aseem Foundation visited various places in India where brave soldiers fought and displayed courage, bravery, and sacrifice. In this heroic journey, soil was collected from places like <strong>Samba, Naushera, Badgam, Rajouri, Rezang La, Siachen, and other war zones,</strong> and this Kalash was decorated, laying the foundation of the National Integration Park.</p>
+      </div>
+
+      <button class="collapsible" aria-expanded="false">Thunder Park<span class="caret">▶</span></button>
+      <div class="content" aria-hidden="true">
+          <p>Why do we call it a thunder park? The plates used to hang the medal prototype and their information are used for emergency landings or in thunderstorms over water. The plate though looks robust is light in weight with aluminum cover and thermocol inside, which helps our soldiers to float on water and save their lives.</p>
+          <p>The plates where we have hung the medal prototypes, along with their information, have a critical safety function — they are designed for emergency landings or during thunderstorms over water. Although the plate appears robust, it is surprisingly lightweight, made with an aluminum cover and thermocol inside. This design not only ensures durability but also enables the plate to float on water, helping our soldiers stay afloat and save their lives in challenging situations.
+  These plates are a reminder that our defence forces are not just about large tanks, fighter planes, and big guns, but also about the small, ingenious details that quietly save lives. Here, we also showcase the peacetime gallantry awards — the Ashok Chakra, Kirti Chakra, and Shaurya Chakra — honouring extraordinary acts of bravery beyond the battlefield.</p>
+          <video width="100%" controls preload="none">
+              <source src="thunderpark.mp4" type="video/mp4">
+            Your browser does not support the video tag.
+          </video>
+      </div>
+
+      <button class="collapsible" aria-expanded="false">Lest We Forget (Information and Video) <span class="caret">▶</span></button>
+      <div class="content" aria-hidden="true">
+          <p><strong>‘Lest We Forget’ </strong>is a phrase borrowed from a well-known poem written by Rudyard Kipling in the 19th century, which means <strong>'it should not be forgotten'.</strong> We say or write 'lest we forget' in commemorations to always remember the service and sacrifice of people who have served in wars, conflicts and peacekeeping operations. This <strong>Veerta Shilpa</strong> is dedicated to all the known and unknown military officers and soldiers, whose sacrifice, dedication, and valor enable us to live with pride. </p>
+          <video width="100%" controls preload="none">
+              <source src="lestweforget.mp4" type="video/mp4">
+              Your browser does not support the video tag.
+          </video>
+      </div>
+    </div>
+
+    <div id="about" class="tab-content" role="tabpanel">
+      <h2>About</h2>
+      <p><strong>Aseem Foundation </strong>was established with a universal theme cutting across economic, social, religious or ideological differences to change the society. </p> 
+      <p>It resolves to bridge minds who want to change things for better through its work in the fields of <strong>Education, Entrepreneurship and Development.</strong> 
+We are a non-governmental organization committed for Developing and establishing connections between the people from the disturbed Border regions and from the rest of India.
+Volunteers of Aseem have been active since 2002 in the Kashmir region. The NGO was registered in the year 2010, and has been growing ever since. </p>
+      <p>For the past ten years, Aseem Foundation has made various efforts to make the National Integration Park a reality. In 2021, with the help of Gangotri Homes and Holidays, Aseem Foundation constructed this National Integration Park, which was inaugurated by the then Chief of Army Staff, General M.M. Naravane.</p>
+      <p><strong>A Living Tribute to Bravery</strong><br/>At Thunder Park &amp; Rays of Hope, discover the lives of 21 Param Vir Chakra awardees - India’s bravest. Through augmented reality and sand sculptures, their courage comes alive to remind us what true heroism looks like.</p>
+      <p><strong>Cultural Center - India in a Circle</strong><br/>Step into huts from across the country, from the houseboats of Kashmir to the living root bridges of Meghalaya. Taste. Touch. Listen. Learn.</p>
+    </div>
+
+    <div id="raysofhope" class="tab-content" role="tabpanel">
+      <h2 id="rays-title">Rays Of Hope</h2>
+      <p>In the heart of The National Integration Park lies a place where we remember twenty-one of India's bravest souls - heroes who thought beyond themselves, and with unwavering courage, upheld the integrity of our nation. Welcome to <strong>Rays of Hope.</strong></p>
+      <p><strong>About the Param Vir Chakra Award</strong></p>
+      <p>India's highest gallantry award, awarded for displaying distinguished acts of valour during war time.
+      Savitri bai Khanolkar was asked by adjutant General Major General Hira Lal Atal to design India's highest award for bravery in combat, the Param Vir Chakra. 
+      The medal is a circular bronze disc 35 millimeters in diameter. On the front, the National Emblem if India appears in the centre on a raised circle surrounded by four copies of the vajra, the weapon of Indra.
+      On the reverse, around a plain centre, are two legends separated by lotus flowers. The words "Param Vir Chakra" are written in Hindi and English.</p>
+      <div class="rays-grid">
+
+        <!-- 1947-48 -->
+        <div class="rays-section">
+          <button class="collapsible" aria-expanded="false">1947-48 <span class="caret">▶</span></button>
+          <div class="content" aria-hidden="true">
+            <video controls preload="none"><source src="1947-48-background.mp4" type="video/mp4"></video>
+            <h4>Major Somnath Sharma</h4>
+            <img src="SomnathSharma.jpg" alt="Major Somnath Sharma"class="hero-img">
+            <p>4 Kumaon Regiment</p>
+            <p>Budgam, J&K</p>
+            <p>Altitude: 1655 m</p> 
+            <p>Date of action: Nov 03, 1947</p> 
+            <p>Age at the time: 24 years</p>
+            <h4>Naik Jadunath Singh</h4>
+            <img src="jadunathsingh.jpg" alt="Naik Jadunath Singh"class="hero-img">
+            <p>1 Rajput Regiment</p>
+            <p>Tain dhar, Kashmir</p>
+            <p>Altitude : 1118 m</p>
+            <p>Age at the time : 31 years</p>
+            <h4>2/Lt. Rama Raghoba Rane</h4>
+            <img src="ramaraghobarane.jpg" alt="2/Lt. Rama Raghoba Rane"class="hero-img">
+            <p>Corps of Engineers</p>
+            <p>Rajouri, Jammu and Kashmir</p>
+            <p>Altitude : 915 m</p>
+            <p>Date of action : April 10, 1948</p>
+            <p>Age at the time : 29 years</p>
+            <h4>CHM Piru Singh Shekhawat</h4>
+            <img src="psshekhawat.jpg" alt="CHM Piru Singh Shekhawat"class="hero-img">
+            <p>6 Rajputana Rifles</p>
+            <p>Darapari, Tithwal, Jammu and Kashmir</p>
+            <p>Altitude : 3,499 m</p>
+            <p>Date of Action : July 18, 1948</p>
+            <p>Age at the time : 30 years</p>
+            <h4>Lance Naik Karam Singh</h4>
+            <img src="karamsingh.jpg" alt="Lance Naik Karam Singh"class="hero-img">
+            <p>1 Sikh Regiment</p>
+            <p>Richhmar Gali, Jammu and Kashmir</p>
+            <p>Altitude : 2,383 m</p>
+            <p>Date of action : Oct 13, 1948</p>
+            <p>Age at the time : 33 years</p>
+          </div>
+        </div>
+
+        <!-- 1962 -->
+        <div class="rays-section">
+          <button class="collapsible" aria-expanded="false">1962 <span class="caret">▶</span></button>
+          <div class="content" aria-hidden="true">
+            <video controls preload="none"><source src="1962-background.mp4" type="video/mp4"></video>
+            <h4>Major Dhan Singh Thapa</h4>
+            <img src="dsthapa.jpg" alt="=Major Dhan Singh Thapa"class="hero-img">
+            <p>1/8 Gorkha Rifles</p>
+            <p>Sirijap 1, Ladakh</p>
+            <p>Altitude : 4,300 m</p>
+            <p>Date of Action : Dec 05, 1961</p>
+            <p>Age at the time : 34 years</p>
+            <h4>Subedar Joginder Singh</h4>
+            <img src="jsingh.jpg" alt="Subedar Joginder Singh"class="hero-img">
+            <p>1 Sikh Regiment</p>
+            <p>Bum La Pass, Arunachal Pradesh</p>
+            <p>Altitude : 4,633 m</p>
+            <p>Date of Action : Oct 23, 1962</p>
+            <h4>Major Shaitan Singh</h4>
+            <img src="shaitansingh.jpg" alt="Major Shaitan Singh"class="hero-img">
+            <p>13 Kumaon Regiment</p>
+            <p>Rezang La, Ladakh</p>
+            <p>Altitude : 5,500 m </p>
+            <p>Date of Action : Nov 18, 1962</p>
+            <p>Age at the time : 37 years</p>
+          </div>
+        </div>
+
+        <!-- 1965 -->
+        <div class="rays-section">
+          <button class="collapsible" aria-expanded="false">1965 <span class="caret">▶</span></button>
+          <div class="content" aria-hidden="true">
+            <video controls preload="none"><source src="1965-background.mp4" type="video/mp4"></video>
+            <h4>CQMH Abdul Hamid</h4>
+            <img src="abdulhamid.jpg" alt="CQMH Abdul Hamid"class="hero-img">
+            <p>4 Grernadiers Regiment</p>
+            <p>Khem Karan, Punjab</p>
+            <p>Altitude : 214 m</p>
+            <p>Date of action : Sept 10, 1965</p>
+            <p>Age at the time : 32 years</p>
+            <h4>Lt. Col. Ardeshir Burzorji Tarapore</h4>
+            <img src="abtarapore.jpg" alt="Lt. Col. Ardeshir Burzorji Tarapore"class="hero-img">
+            <p>17 Horse Regiment</p>
+            <p>Chawinda, Pakistan</p>
+            <p>Altitude : 165 m</p>
+            <p>Date of action : Sept 11, 1965</p>
+            <p>Age at the time : 42 years</p>
+          </div>
+        </div>
+
+        <!-- 1971 -->
+        <div class="rays-section">
+          <button class="collapsible" aria-expanded="false">1971 <span class="caret">▶</span></button>
+          <div class="content" aria-hidden="true">
+            <video controls preload="none"><source src="1971-background.mp4" type="video/mp4"></video>
+            <h4>Lance Naik Albert Ekka</h4>
+            <img src="albertekka.jpg" alt="Lance Naik Albert Ekka"class="hero-img">
+            <p>14 Guards Regiment</p>
+            <p>Gangasagar, Bangladesh</p>
+            <p>Altitude : 4 m</p>
+            <p>Date of Action : Dec 03, 1971</p>
+            <p>Age at the time : 29 years</p>
+            <h4>Flying Officer Nirmal Jit Singh Sekhon</h4>
+            <img src="nirmalsekhon.jpg" alt="Flying Officer Nirmal Jit Singh Sekhon"class="hero-img">
+            <p>18 Sqn AF</p>
+            <p>Srinagar, Jammu and Kashmir</p>
+            <p>Altitude : Aerial Combat</p>
+            <p>Date of Action : Dec 14, 1971</p>
+            <p>Age at the time : 26 years</p>
+            <h4>2/Lt. Arun Khetrapal</h4>
+            <img src="arunkhetrapal.jpg" alt="2/Lt. Arun Khetrapal"class="hero-img">
+            <p>17 Horse Regiment</p>
+            <p>Basantar, Pakistan</p>
+            <p>Altitude : 268 m</p>
+            <p>Date of action : Dec 16, 1971</p>
+            <p>Age at the time : 21 years</p>
+            <h4>Major Hoshiar Singh</h4>
+            <img src="hoshiarsingh.jpg" alt="Major Hoshiar Singh"class="hero-img">
+            <p>3 Grenadier Regiment</p>
+            <p>Basantar, Pakistan</p>
+            <p>Altitude : 268 m</p>
+            <p>Date of action : Dec 17, 1971</p>
+            <p>Age at the time: 35 years</p>
+          </div>
+        </div>
+
+        <!-- 1999 -->
+        <div class="rays-section">
+          <button class="collapsible" aria-expanded="false">1999 <span class="caret">▶</span></button>
+          <div class="content" aria-hidden="true">
+            <video controls preload="none"><source src="1999-background.mp4" type="video/mp4"></video>
+            <h4>Lt. Manoj Kumar Pandey</h4>
+            <img src="mkpandey.jpg" alt="Lt. Manoj Kumar Pandey"class="hero-img">
+            <p>1/11 Gorkha Rifles</p>
+            <p>Batalik Sector, Kargil</p>
+            <p>Altitude : 3000 m</p>
+            <p>Date of action : July 2, 1999</p>
+            <p>Age at the time: 24 years</p>
+            <h4>Grenadier Yogendra Singh Yadav</h4>
+            <img src="ysyadav.jpg" alt="Grenadier Yogendra Singh Yadav"class="hero-img">
+            <p>18 Grenadier Regiment</p>
+            <p>Tiger Hill, Ladakh</p>
+            <p>Altitude : 5,029 m</p>
+            <p>Date of action : July 3, 1999</p>
+            <p>Age at the time: 19 years</p>
+            <h4>Rifleman Sanjay Kumar</h4>
+            <img src="sanjaykumar.jpg" alt="Rifleman Sanjay Kumar"class="hero-img">
+            <p>13 JAK RIF</p>
+            <p>Pt. 4875, Mushkoh Valley</p>
+            <p>Altitude : 4,938 m</p>
+            <p>Date of action : July 4, 1999</p>
+            <p>Age at the time: 23 years</p>
+            <h4>Capt. Vikram Batra</h4>
+            <img src="vikrambatra.jpg" alt="Capt. Vikram Batra"class="hero-img">
+            <p>13 JAK RIF</p>
+            <p>Batalik Sector, Kargil</p>
+            <p>Altitude : 3,000 m</p>
+            <p>Date of action : July 2, 1999</p>
+            <p>Age at the time: 24 years</p>
+          </div>
+        </div>
+
+        <!--others-->
+         <div class="rays-section">
+          <button class="collapsible" aria-expanded="false">Others<span class="caret">▶</span></button>
+          <div class="content" aria-hidden="true">
+            <h4>Capt. Gurbachan Singh Salaria</h4>
+            <img src="gssalaria.jpg" alt="Capt. Gurbachan Singh Salaria"class="hero-img">
+            <p>3/1 Gorkha Regiment</p>
+            <p>Democratic Republic of Congo</p>
+            <p>Altitude : 1208 m</p>
+            <p>Date of action : Dec 05, 1961</p>
+            <p>Age at the time: 26 years</p>
+            <h4>Naib Subedar Bana Singh</h4>
+            <img src="banasingh.jpg" alt="Naib Subedar Bana Singh"class="hero-img">
+            <p>8 JAK LI</p>
+            <p>Saltoro Ridge, Siachen</p>
+            <p>Altitude : 6,400 m</p>
+            <p>Date of action : June 23, 1987</p>
+            <p>Age at the time: 38 years</p>
+            <h4>Major Ramaswami Parmeshwaram</h4>
+            <img src="rparmeshwaram.jpg" alt="Major Ramaswami Parmeshwaram"class="hero-img">
+            <p>8 Mahar Regiment</p>
+            <p>North Jaffna, Sri Lanka</p>
+            <p>Altitude : 5 m</p>
+            <p>Date of action : Nov 25, 1987</p>
+            <p>Age at the time: 41 years</p>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <div id="culturalcentre" class="tab-content" role="tabpanel">
+      <h2>Cultural Centre</h2>
+      <p>Showcasing diverse traditions, festivals, art forms and living heritage from India's border regions. Use the sections below to explore the richness of our border states.</p>
+      <div style="display:flex;flex-wrap:wrap;gap:16px;margin-top:12px">
+        <div style="flex:1;min-width:220px">
+          <h3>Assam</h3>
+          <video controls preload="none"><source src="assam1.mp4" type="video/mp4"></video>
+          <video controls preload="none"><source src="assam2.mp4" type="video/mp4"></video>
+        </div>
+        <div style="flex:1;min-width:220px">
+          <h3>Manipur</h3>
+          <video controls preload="none"><source src="manipur.mp4" type="video/mp4"></video>
+        </div>
+         <div style="flex:1;min-width:220px">
+          <h3>Tripura</h3>
+          <video controls preload="none"><source src="tripura.mp4" type="video/mp4"></video>
+        </div>
+        <div style="flex:1;min-width:220px">
+          <h3>Arunachal Pradesh</h3>
+          <video controls preload="none"><source src="arunachal.mp4" type="video/mp4"></video>
+        </div>
+        <div style="flex:1;min-width:220px">
+          <h3>Nagaland</h3>
+          <video controls preload="none"><source src="nagaland.mp4" type="video/mp4"></video>
+        </div>
+        <div style="flex:1;min-width:220px">
+          <h3>Jammu and Kashmir</h3>
+          <video controls preload="none"><source src="jandk.mp4" type="video/mp4"></video>
+        </div>
+        <div style="flex:1;min-width:220px">
+          <h3>Ladakh</h3>
+          <video controls preload="none"><source src="ladakh.mp4" type="video/mp4"></video>
+        </div>
+        <div style="flex:1;min-width:220px">
+          <h3>Mizoram</h3>
+          <video controls preload="none"><source src="mizoram.mp4" type="video/mp4"></video>
+        </div>
+      </div>
+    </div>
+
+  </div> <!-- /.container -->
+
+    <!-- Home Tab -->
+    <div id="games" class="tab-content active" role="tabpanel" aria-labelledby="Games">
+      <h2>Celebrate Unity Through Games!</h2>
+      <p> Dive into the vibrant cultural heritage of India with our National Integration Games!
+      From the strategic "Know Your States" puzzle to the energetic Cheraw bamboo dance, these games blend fun, teamwork and tradition. Test your skills in Assam's Dhop Khel,
+      Nagaland's Hekko, or Mizoram's Insuknawr while fostering unity and learning about 
+      India's diverse cultures. Let's play, learn and grow together. </p>
+      <button class="collapsible" aria-expanded="false">Know Your States<span class="caret">▶</span></button>
+      <div class="content" aria-hidden="true">
+         <h3>How to Play?</h3>
+    <ul>
+        <li>Let's consider the game of four states.</li>
+        <li>Divide the students into four teams.</li>
+        <li>Each team will receive a puzzle board representing a state, but they won't know which state it is.</li>
+        <li>The objective is to identify the state by answering questions and correctly arranging the puzzle pieces.</li>
+        <li>Here's the twist: all teams have the same number of pieces, with identical shapes, and the pieces have already been mixed up.</li>
+        <li>Teams must collect their state's pieces from the other teams, but be mindful that other teams also need their own pieces, some of which you may possess.</li>
+        <li>The game duration is 15 minutes.</li>
+    </ul>
+    
+    <h4>Learning Outcomes</h4>
+    <ul>
+        <li>Knowing Border States</li>
+        <li>Negotiation Skills – Effective Communication, Planning, Emotional Intelligence</li>
+        <li>Problem Solving & Decision Making</li>
+        <li>Convincing Ability</li>
+        <li>Listening Skills</li>
+        <li>Thinking Out of the Box</li>
+    </ul>
+      </div>
+
+      <button class="collapsible" aria-expanded="false">NE Game/Chor-Police Game<span class="caret">▶</span></button>
+      <div class="content" aria-hidden="true">
+      <h3>How to Play?</h3>
+    <h4>Number of Players</h4>
+    <ul>
+        <li>4 to 10 players</li>
+        <li>Mister X: 1 player (Foreign Threat)</li>
+        <li>Other Players:
+            <ul>
+                <li>2 Central Police (CP)</li>
+                <li>7 State Police (SP)</li>
+            </ul>
+        </li>
+        <li>If fewer than 10 players:
+            <ul>
+                <li>At least one person will be Central Police and play the role of 2 CP.</li>
+                <li>If fewer than 7 SP, some SP players will play for multiple states.</li>
+            </ul>
+        </li>
+    </ul>
+    
+    <h4>Equipment</h4>
+    <p><strong>Mister X Receives:</strong></p>
+    <ul>
+        <li>1 playing piece</li>
+        <li>Mister X visor</li>
+        <li>Travel log with paper insert</li>
+        <li>1 pencil (not included)</li>
+        <li>Tickets: 2 × black tickets, 2 × double-move tickets</li>
+    </ul>
+    <p><strong>Each Police Receives:</strong></p>
+    <ul>
+        <li>1 colored playing piece and matching ticket board</li>
+        <li>State Police: 6 bus tickets</li>
+        <li>Central Police: 8 bus tickets, 2 air tickets, 4 rail tickets</li>
+    </ul>
+    
+    <h4>Initial Starting Position</h4>
+    <ul>
+        <li>Shuffle start cards separately for Police and Mister X.</li>
+        <li>Police draw a start card and place their piece on the corresponding station.</li>
+        <li>Mister X draws a start card but does not place their piece on the board.</li>
+    </ul>
+    
+    <h4>Gameplay</h4>
+    <ul>
+        <li>Up to 22 rounds are played.</li>
+        <li>Mister X moves first each round, then Police (in any order).</li>
+        <li>Police discard used tickets to a general draw pile. Mister X draws from it.</li>
+        <li>State Police can only travel within their state; CP can travel across states.</li>
+    </ul>
+    
+    <h4>Ticket Rules</h4>
+    <ul>
+        <li>Stations have symbols for bus, train, or air.</li>
+        <li>To move, players must have the correct ticket for the mode of transport.</li>
+        <li>Pieces can only move to unoccupied stations.</li>
+        <li>If Mister X has no valid moves, they lose.</li>
+        <li><strong>Blue Ticket:</strong> Allows SP to travel to a neighboring state (4 total in the game).</li>
+    </ul>
+    
+    <h4>Special Rules</h4>
+    <p><strong>Mister X Surfaces:</strong></p>
+    <ul>
+        <li>Must reveal location after 3rd, 8th, 13th, 18th, and 24th moves.</li>
+    </ul>
+    <p><strong>Double Move:</strong></p>
+    <ul>
+        <li>Mister X can move twice in one turn using any valid transport.</li>
+        <li>Counts as 2 moves; ticket removed from the game after use.</li>
+    </ul>
+    <p><strong>Black Tickets:</strong></p>
+    <ul>
+        <li>Allow Mister X to use any transport, including waterways.</li>
+        <li>Police cannot see the transport type used.</li>
+    </ul>
+    
+    <h4>End of the Game</h4>
+    <ul>
+        <li>Police win if they land on Mister X’s station.</li>
+        <li>Mister X wins if they avoid capture for 22 rounds.</li>
+    </ul>
+      </div>
+
+      <button class="collapsible" aria-expanded="false">Treasure Hunt<span class="caret">▶</span></button>
+      <div class="content" aria-hidden="true">
+           <h3>How to Play?</h3>
+    <ul>
+        <li>Set up small boards with answers placed throughout the NIP (excluding Rays of Hope).</li>
+        <li>Divide the students into two teams.</li>
+        <li>Each team will receive one question.</li>
+        <li>Teams must find the answers on the fixed boards. Behind each board, they'll find a key with a number code and the next question.</li>
+        <li>The process continues until they've acquired all the treasure box keys.</li>
+        <li>Teams will use the number code received with each key to open the corresponding lock on the treasure box.</li>
+        <li>The last three digits of the code will unlock the treasure.</li>
+        <li>The first team to unlock their treasure box wins!</li>
+    </ul>
+    
+    <h4>Learning Outcome</h4>
+    <ul>
+        <li>Team Coordination</li>
+        <li>Time Management</li>
+    </ul>
+      </div>
+
+       <button class="collapsible" aria-expanded="false">Cheraw Dance<span class="caret">▶</span></button>
+      <div class="content" aria-hidden="true">
+        <h3>Cheraw Dance</h3>
+    <p><strong>Origin:</strong> Mizoram</p>
+    <p>It is a traditional bamboo dance performed by the Mizo people of Mizoram. Both men and women come together & perform the bamboo dance of Mizoram.</p>
+    
+    <h4>How to Play?</h4>
+    <ul>
+        <li>Divide participants into teams of equal size.</li>
+        <li>Each team will get a set (at least one set) of bamboo poles.</li>
+        <li>Teams have to establish a rhythm or beat for the dance. This could be provided by any musical instrument or bamboo poles. The rhythm will guide the movements of the dancers.</li>
+        <li>The dance typically begins with a simple stepping pattern. Each team member steps in and out of the poles in sync with the rhythm. The steps can vary, but common ones include side steps, forward-backward steps.</li>
+        <li>Extra points can be earned for:
+            <ul>
+                <li>Good coordination among team members.</li>
+                <li>Maintaining rhythm and the flow of dance.</li>
+                <li>Variations in the steps or movements.</li>
+                <li>Incorporating creativity while staying true to the essence of the Cheraw dance.</li>
+            </ul>
+        </li>
+    </ul>
+    
+    <h4>Learning Outcome</h4>
+    <ul>
+        <li>Knowing the origin of Cheraw dance</li>
+        <li>Team Coordination</li>
+        <li>Creativity</li>
+    </ul>
+</div>
+       <button class="collapsible" aria-expanded="false">Kengdongdang/Bamboo Balance Walk<span class="caret">▶</span></button>
+      <div class="content" aria-hidden="true">
+        <h3>Kengdongdang / Bamboo Balance Walk</h3>
+    <p><strong>Origin:</strong> Assam</p>
+    <p>It is a traditional Karbi sport. A total of 721 men in central Assam’s Karbi Anglong district on January 21 set a new world record for the longest line (2 km) of people walking on stilts.</p>
+    
+    <h4>How to Play?</h4>
+    <ul>
+        <li>Divide participants into teams of equal size.</li>
+        <li>Provide each team with a set of bamboo poles.</li>
+        <li>One player from each team will participate at a time.</li>
+        <li>Designate a starting point and a finish line for the game. The distance between the two points will depend on the available space and the desired level of challenge.</li>
+        <li>Participants must maintain balance and stability while walking on the bamboo poles.</li>
+        <li>If a team member loses balance and touches the ground, the team must start again from the beginning of the course.</li>
+        <li>The objective is for each team to successfully traverse the bamboo balance walkway from start to finish without any team member touching the ground.</li>
+    </ul>
+    
+    <h4>Learning Outcome</h4>
+    <ul>
+        <li>Knowing the origin and importance of Kengdongdang</li>
+        <li>Team Work</li>
+        <li>Balance and Concentration</li>
+    </ul>
+</div>
+       <button class="collapsible" aria-expanded="false">Dhop Khel (Assam)<span class="caret">▶</span></button>
+      <div class="content" aria-hidden="true">
+        <h3>Dhop Khel</h3>
+    
+    <h4>Background</h4>
+    <ul>
+        <li>Dhop khel is the traditional game of Assam, played at the beginning of the spring season and at the time of Bihu festival.</li>
+        <li>Once upon a time this game was specially organised for the members of the Ahom Raj family.</li>
+        <li>It is traditionally played with a ball. Along with speed it also tests players’ stamina, energy and acrobatic skills.</li>
+    </ul>
+    
+    <h4>How to Play?</h4>
+    <ul>
+        <li>Make two teams, each consisting of 11 players.</li>
+        <li>The ground for the game is 125 x 80 meters, with a flag in each corner called “Chaukor Nishaan”.</li>
+        <li>The field is separated in two parts by a centerline.</li>
+        <li>At the beginning, one player throws a rubber ball called <em>Dhop</em> into the other team’s field. If the ball does not land in the opponent's court, it must be thrown again.</li>
+        <li>The other team catches it and tosses it toward the players at the corners (called Katoni). If Katoni misses, the team loses the next throw.</li>
+        <li>If the ball hits Katoni below the waist, it’s called <em>Kota</em>. The player becomes <em>Bodha</em> — standing in the opponent’s area to block them and try to retrieve the ball without being touched.</li>
+        <li>If successful, the Bodha becomes <em>Ghai</em> and rejoins the team.</li>
+        <li>If one team has 10 Ghai Bodha, the last player becomes <em>Ghai Katoni</em>. If they also become Kota, the other team wins.</li>
+    </ul>
+</div>
+      <button class="collapsible" aria-expanded="false">Hekko<span class="caret">▶</span></button>
+      <div class="content" aria-hidden="true">
+        <h3>Hekko</h3>
+    
+    <h4>Origin</h4>
+    <ul>
+        <li>Nagaland</li>
+        <li>Primarily played by the youth of Changki village in Mokochung district.</li>
+    </ul>
+    
+    <h4>Background</h4>
+    <ul>
+        <li>The most powerful person of the village is determined by this game.</li>
+        <li>Played between two teams to showcase power, stamina, and skills.</li>
+        <li>Legend says that humans and animals once lived together but fought over resources. Tigers, being the strongest, claimed food first. Humans challenged them in a contest called Hekko, in which the tigers lost and had to move to the forest.</li>
+        <li>Hek means “to dare” and Ko means “tiger” — Hekko means “daring the tiger.”</li>
+    </ul>
+    
+    <h4>How to Play?</h4>
+    <ul>
+        <li>Divide the players into two teams — “Aami” (Men’s team) and “Aakho” (Tiger’s team).</li>
+        <li>Draw a circle on the ground to represent a house or village.</li>
+        <li>Aami team forms a human chain inside the circle.</li>
+        <li>Two members of Aakho team enter the circle and try to force Aami members out, while Aami tries to keep them inside and surround them to make them surrender.</li>
+        <li>If an Aakho member says “Joko,” it means they surrender.</li>
+        <li>When an Aakho member is out, another member replaces them. Aakho can keep replacing until no members are left. Aami has no replacements.</li>
+        <li>Each time a team gets an opponent player out, they gain points.</li>
+    </ul>
+</div>
+
+      <button class="collapsible" aria-expanded="false">Insuknawr<span class="caret">▶</span></button>
+      <div class="content" aria-hidden="true">
+        <h4>Origin</h4>
+    <ul>
+        <li>Mizoram</li>
+        <li>Indigenous game of Mizoram, declared as the Mizo national game by the Mizoram State Sports Council.</li>
+    </ul>
+    
+    <h4>Background</h4>
+    <ul>
+        <li>Sport of strength and stamina, very popular among Mizo youth.</li>
+        <li>Believed to have originated when young Mizo men, during rest from paddy comminution, would take the rod used for comminution (Suk) and display their might and heroism.</li>
+    </ul>
+    
+    <h4>How to Play?</h4>
+    <ul>
+        <li>Played between two players.</li>
+        <li>Game area is a circle with a diameter of 16–18 feet.</li>
+        <li>At the start, both players hold a section of the bamboo pole (Suk) under their armpits, with the center of the Suk aligned to the center of the circle.</li>
+        <li>Players try to push each other out of the circle using strength.</li>
+        <li>If a player loses balance or lets go of the Suk, they are defeated.</li>
+        <li>If the corner of the Suk touches the ground, the player receives negative points.</li>
+    </ul>
+</div>
+     
+      <button class="collapsible" aria-expanded="false">Insuknawr<span class="caret">▶</span></button>
+      <div class="content" aria-hidden="true">
+        <h3>Whistling Village</h3>
+
+    <h4>Origin</h4>
+    <ul>
+        <li>Meghalaya</li>
+        <li>Kongthong Village, located in the East Khasi Hills district, about 60 km from Meghalaya's capital Shillong.</li>
+    </ul>
+
+    <h4>Background</h4>
+    <ul>
+        <li>In Kongthong Village, people call each other by a distinct melody or special tune, not regular names.</li>
+        <li>Whistling is used as a method to convey messages across the village.</li>
+        <li>The tune is called <em>Jingrwai Lawbei</em>, meaning "mother's love song".</li>
+    </ul>
+
+    <h4>How to Play?</h4>
+    <ul>
+        <li>Split participants into subgroups.</li>
+        <li>Select one person in each group as the shepherd; remaining members are the sheep and will be blindfolded.</li>
+        <li>Blindfolded sheep are led individually to various points in the area and left there.</li>
+        <li>Mark a ‘pen’ area (not necessarily near the shepherd).</li>
+        <li>Stand the shepherd away from the pen; begin the timer and remind: "No verbal communication".</li>
+        <li>Shepherd must guide sheep into the pen without verbal communication.</li>
+        <li>Sheep keep blindfolds on until the exercise ends.</li>
+        <li>Shepherd must not move from original position and must not touch any sheep.</li>
+    </ul>
+</div>
+ </div>
+
+  <script>
+    // Tab switching that works with the current markup
+    function openTab(evt, tabId) {
+      if (!tabId) return;
+      const target = document.getElementById(tabId);
+      if (!target) { console.warn('openTab: no element with id', tabId); return; }
+
+      // hide all
+      document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+      // deactivate buttons
+      document.querySelectorAll('.tab-buttons > button, .tab-link').forEach(b => b.classList.remove('active'));
+
+      // show target
+      target.classList.add('active');
+
+      // mark clicked button active (if event present)
+      if (evt && evt.currentTarget) {
+        evt.currentTarget.classList.add('active');
+      } else {
+        // fallback: try to find button by data-target
+        const btn = document.querySelector('.tab-buttons button[data-target="' + tabId + '"]');
+        if (btn) btn.classList.add('active');
+      }
+
+      // if the Rays tab opened, ensure its title visibility resets (for scroll behavior)
+      if (tabId === 'raysofhope') {
+        const raysTitle = document.getElementById('rays-title');
+        if (raysTitle) raysTitle.classList.remove('hidden');
+      }
+    }
+
+    // Login handling
+    function validateLogin() {
+      const user = document.getElementById('username').value.trim();
+      const pass = document.getElementById('password').value.trim();
+      const overlay = document.getElementById('loginOverlay');
+      const main = document.getElementById('mainContent');
+      const err = document.getElementById('loginError');
+      if (user === 'guest' && pass === 'park123') {
+        overlay.style.display = 'none';
+        overlay.setAttribute('aria-hidden','true');
+        main.style.display = 'block';
+        // open default tab
+        openTab(null, 'home');
+      } else {
+        err.style.display = 'block';
+      }
+    }
+
+    // Collapsible setup
+    function setupCollapsibles() {
+      document.querySelectorAll('.collapsible').forEach(btn => {
+        btn.addEventListener('click', function() {
+          const content = this.nextElementSibling;
+          if (!content) return;
+          const isOpen = this.getAttribute('aria-expanded') === 'true';
+          this.setAttribute('aria-expanded', String(!isOpen));
+          if (!isOpen) {
+            content.classList.add('open');
+            content.style.maxHeight = content.scrollHeight + 'px';
+            content.setAttribute('aria-hidden','false');
+          } else {
+            content.style.maxHeight = '0px';
+            content.classList.remove('open');
+            content.setAttribute('aria-hidden','true');
+          }
+        });
+      });
+    }
+
+    // Hide rays title on scroll
+    function setupRaysTitleScroll() {
+      const title = document.getElementById('rays-title');
+      if (!title) return;
+      window.addEventListener('scroll', () => {
+        // only hide when raysofhope tab is active
+        const raysTab = document.getElementById('raysofhope');
+        if (!raysTab || !raysTab.classList.contains('active')) return;
+        const currentY = window.scrollY;
+        if (currentY > 60) {
+          title.classList.add('hidden');
+        } else {
+          title.classList.remove('hidden');
+        }
+      });
+    }
+
+    // Initialize
+    document.addEventListener('DOMContentLoaded', function() {
+      // wire up tab buttons
+      document.querySelectorAll('.tab-buttons > button').forEach(btn => {
+        const target = btn.getAttribute('data-target') || btn.textContent.trim().toLowerCase().replace(/\s+/g,'');
+        btn.setAttribute('data-target', target);
+        btn.addEventListener('click', (e) => openTab(e, target));
+      });
+
+      // attach login button & Enter key for convenience
+      const loginBtn = document.getElementById('loginBtn');
+      if (loginBtn) loginBtn.addEventListener('click', validateLogin);
+      ['username','password'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.addEventListener('keydown', (e)=>{ if (e.key==='Enter') validateLogin(); });
+      });
+
+      setupCollapsibles();
+      setupRaysTitleScroll();
+
+      // if mainContent is visible (dev), open default tab
+      const main = document.getElementById('mainContent');
+      if (main && getComputedStyle(main).display !== 'none') {
+        openTab(null, 'home');
+      }
+
+      // Self-tests (basic runtime checks in console)
+      (function selfTest(){
+        try{
+          console.group('Self-test');
+          console.assert(typeof openTab === 'function', 'openTab is defined');
+          console.assert(document.getElementById('home'), '#home exists');
+          console.assert(document.querySelectorAll('.tab-buttons > button').length >= 4, 'tab buttons present');
+          openTab(null,'about');
+          console.assert(document.getElementById('about').classList.contains('active'), 'about tab activates');
+          openTab(null,'home');
+          console.assert(document.getElementById('home').classList.contains('active'), 'home tab re-activates');
+          console.groupEnd();
+        } catch(e){ console.error('Self-test failed:', e); }
+      })();
+    });
+
+    // Global title & flag hide-on-scroll
+    (function() {
+      let lastScroll = 0;
+      const pageTitleEl = document.getElementById('pageTitle');
+      //const flagBannerEl = document.querySelector('.flag-banner');
+      if (!pageTitleEl && !flagBannerEl) return;
+      window.addEventListener('scroll', function () {
+        const currentScroll = window.pageYOffset || document.documentElement.scrollTop;
+        if (currentScroll > 50) {
+          if (pageTitleEl) pageTitleEl.classList.add('hidden');
+          //if (flagBannerEl) flagBannerEl.classList.add('hidden');
+        } else {
+          if (pageTitleEl) pageTitleEl.classList.remove('hidden');
+         // if (flagBannerEl) flagBannerEl.classList.remove('hidden');
+        }
+        lastScroll = currentScroll <= 0 ? 0 : currentScroll;
+      });
+    })();
+  </script>
+</body>
+</html>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
